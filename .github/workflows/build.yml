@@ -21,29 +21,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@0.11.0
+        uses: styfle/cancel-workflow-action@0.12.1
         with:
           access_token: ${{ github.token }}
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
-      - name: Restore cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
       - name: Assemble Debug
         if: ${{ github.ref != 'refs/heads/main' }}
         run: ./gradlew assembleDebug
@@ -76,25 +68,25 @@ jobs:
         run: cp app/build/outputs/apk/**/release/*.apk ./
       - name: Upload arm64-v8a-debug APK
         if: ${{ github.ref != 'refs/heads/main' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: apk-arm64-v8a-debug
           path: app-arm64-v8a-arm64-v8a-debug.apk
       - name: Upload armeabi-v7a-debug APK
         if: ${{ github.ref != 'refs/heads/main' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: apk-armeabi-v7a-debug
           path: app-armeabi-v7a-armeabi-v7a-debug.apk
       - name: Upload arm64-v8a-release APK
         if: ${{ github.ref == 'refs/heads/main' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: apk-arm64-v8a-release
           path: app-arm64-v8a-arm64-v8a-release.apk
       - name: Upload armeabi-v7a-release APK
         if: ${{ github.ref == 'refs/heads/main' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: apk-armeabi-v7a-release
           path: app-armeabi-v7a-armeabi-v7a-release.apk
@@ -104,23 +96,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
-      - name: Restore cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
       - name: Run debug tests
         run: ./gradlew runTestsInCI --continue
         env:
@@ -134,7 +118,7 @@ jobs:
           IDE_SIGNING_KEY_BIN: ${{ secrets.IDE_SIGNING_KEY_BIN }}
       - name: Upload Test Reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-reports
           path: '**/build/reports/tests/'
@@ -146,33 +130,25 @@ jobs:
     if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.build_apk.result == 'success' && needs.unit_test_debug.result == 'success' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
       - name: Download arm64-v8a APK
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: apk-arm64-v8a-release
       - name: Download armeabi-v7a APK
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: apk-armeabi-v7a-release
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
-      - name: Restore cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
       - name: Publish release
         run: ./gradlew nyxMake nyxMark nyxPublish publish release --stacktrace
         env:
@@ -184,10 +160,10 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.MVN_SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MVN_SIGNING_KEY_PASSWORD }}
       - name: Archive Nyx state file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: .nyx-state-${{ github.job }}.json
+          name: nyx-state-${{ github.job }}
           path: build/nyx-state.json
 
   publish_snapshots:
@@ -197,25 +173,17 @@ jobs:
     if: ${{ always() && github.ref != 'refs/heads/main' && github.event_name != 'pull_request' && needs.build_apk.result == 'success' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
-      - name: Restore cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
       - name: Publish snapshots
         run: ./gradlew publishAllPublicationsToMavenCentralRepository --stacktrace
         env:
